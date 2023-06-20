@@ -665,13 +665,31 @@ public class LogicielController implements Logiciel{
     public void afficherplusFiableChemin(Sommet S1, Sommet S2) {
         List<Sommet> chemin = gf.plus_fiable_chemin(S1, S2);
         List<Arete> trace = new LinkedList<>();
+        List<Arete> dontTrace = new LinkedList<>();
         String mess;
         l.getConsole().setText("");
         
-        
         if (chemin != null){
+        // On cherche les aretes à ne pas afficher
+        for (int i = 1;i<chemin.size();i++){
+            Arete tmpA = g.getArete2(chemin.get(i-1).getNom(), chemin.get(i).getNom());
+            trace.add(tmpA);
+        }
+        
+        for (Sommet tmp : chemin){
+            Arete tmpA = tmp.getArete();
+            while (tmpA != null){
+                if (!trace.contains(tmpA)){
+                    dontTrace.add(tmpA);
+                }
+                tmpA = tmpA.getSuivant();
+            }
+        }
+        }
+        
+        if (gf.distance_plus_fiable_chemin(S1, S2) != 0){
             
-            l.getGraphScreen().Afficher_Chemin(chemin,trace);
+            l.getGraphScreen().Afficher_Chemin(chemin,dontTrace);
             mess = "Chemin le plus fiable entre " + S1.getNom() + " et " + S2.getNom() + " : ";
             mess += S1.getNom() + " --> ";
             for ( Sommet tmp : chemin){
@@ -859,6 +877,7 @@ public class LogicielController implements Logiciel{
         this.setG(g);
         this.setGf(graphefonc);
         this.l.newGraphScreen();
+        l.disenable();
         }
     }
 
@@ -945,7 +964,35 @@ public class LogicielController implements Logiciel{
         this.l.errorGraph();
         this.generate = false;
     }
+    
+
+    /**
+     * Methode pour ajouter un noeud sur le graphe 
+     * @param Type
+     */
+    @Override
+    public void ajouterNoeud(String Type) {
+        
+        // On determine un nom au sommet
+        int idSommet = g.compte_Sommets() +1;
+        String nomSommet = "S" + idSommet;
+        
+        g.addSommet(nomSommet, Type);
+        this.l.newGraphScreen();
+    }
+
+    @Override
+    public void ajouterArete(Sommet S1, Sommet S2, double dist, double fiab, double dur) {
+        if (!g.checkArrete(S1.getNom(), S2.getNom())){
+            g.addArete(S1.getNom(), S2.getNom(), fiab, dist, dur);
+            this.l.newGraphScreen();
+        }
+        else{
+            this.l.message();
+        }
+    }
     //</editor-fold>
+
 }
 
 

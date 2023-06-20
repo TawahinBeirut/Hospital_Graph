@@ -10,14 +10,41 @@ import java.util.Objects;
 import sae.Model.Graphe;
 
 import static java.lang.Integer.parseInt;
+import sae.Logiciel;
 import sae.Model.Graphe.Arete;
 import sae.Model.Graphe.Sommet;
 
+/**
+ * Cette classe représente la partie où à partir d'un Ficher csv notre gaphe est generé du projet
+ * 
+ * @author Gheribi
+ * @version 1.1
+ */
 public class Generation {
-    static String path1 = null ;
-    static String path2 = null;
     
-    public Generation(String newPath1,String newPath2,Graphe g){
+    // <editor-fold defaultstate="collapsed" desc="ATTRIBUTS">
+    
+    /**
+     * Correspond au chemin relatif au dossier SAE du fichier csv (liste d'adjacence)
+     */
+    static String path1 = null ;
+    
+    /**
+     * Correspond au chemin relatif au dossier SAE du fichier csv (liste de sucesseurs)
+     */
+    static String path2 = null;
+    // </editor-fold>
+    
+    // <editor-fold defaultstate="collapsed" desc="CONSTRUCTEUR">
+    
+    /**
+     * Génere le graphe et demande au logiciel d'afficher une fenetre d'errreur si les fichiers ne sont pas valides
+     * @param newPath1 Chemin relatif du fichier csv "Liste-adjacence"
+     * @param newPath2 Chemin relatif du fichier csv "Liste-sucesseurs"
+     * @param g        Modele du graphe
+     * @param l        Interface logicielle
+     */
+    public Generation(String newPath1,String newPath2,Graphe g,Logiciel l){
         this.path1 = newPath1;
         this.path2 = newPath2;
         try{
@@ -25,10 +52,17 @@ public class Generation {
         this.Creation_arretes(g);
         }
         catch (IOException e){
-            System.out.print(e);
+            l.errorGraph();
         }
     }
-    public static void Tri(String[] tab ){
+    //</editor-fold>
+   
+    // <editor-fold defaultstate="collapsed" desc="PRIVATE METHODES">
+    /**
+     * Methode permettent de trier les sommmets du fichier 2
+     * @param tab tableau de String d'une ligne du fichier 2 avec pour séparateur le ";"
+     */
+    private static void Tri(String[] tab ){
         for (int i = 1; i < tab.length - 1; i++)
         {
             int index = i;
@@ -43,21 +77,37 @@ public class Generation {
             tab[i] = min;
         }
     }
-    public void Creation_sommets(Graphe g) throws IOException{
+    /**
+     * Methode permettant de generer les sommets du graphe à partir du fichier 1 (liste-adjacence)
+     * @param g Modele du graphe
+     * @throws IOException 
+     */
+    private void Creation_sommets(Graphe g) throws IOException{
         BufferedReader br = new BufferedReader(new FileReader(path1));
         String line;
         String[] lines;
         while ((line = br.readLine()) != null){
             lines = line.split(";");
             
+            // Permet d'eliminer les fichiers non adaptés
+            if (lines.length >= 2){
             // Sert à enlever d'eventuels espaces 
             lines[0] = lines[0].replaceAll("\\s","");
             lines[1] = lines[1].replaceAll("\\s","");
             g.addSommet(lines[0],lines[1]);
+            }
+            else{
+                throw new IOException();
+            }
         }
     }
 
-    public void Creation_arretes(Graphe g) throws IOException{
+    /**
+     * Methode permettant de generer les aretes du graphe à partir du fichier 1 (liste-adjacence) et 2 (liste sucesseurs)
+     * @param g Modele du graphe
+     * @throws IOException 
+     */
+    private void Creation_arretes(Graphe g) throws IOException{
         
         // Initialisation 
         BufferedReader br = new BufferedReader(new FileReader(path1));
@@ -67,10 +117,14 @@ public class Generation {
         String[] lines;
         String[] lines2;
         
+        
         // Pour chaque ligne on decompose la ligne pour generer des objets
         while (((line = br.readLine()) != null) && ((line2 = br2.readLine()) != null)){
             lines = line.split(";");
             lines2 = line2.split(";");
+            
+            // Permet d'eliminer les fichiers non adaptés
+            if ( lines2.length != lines.length){
             Tri(lines2);
             int counter = 1;
                 for (int i = 2; i < lines.length; i++) {
@@ -86,9 +140,20 @@ public class Generation {
                         counter += 1;
                     }
                 }
+            }
+            else {
+                throw new IOException();
+            }
         }
     }
-    /* Fonction pour sauvegarder la*/
+    //</editor-fold>
+    
+    // <editor-fold defaultstate="collapsed" desc="PUBLIC METHODES">
+    /**
+     * Methode pour modeliser un fichier csv à partir d'un Modele de graphe
+     * @param g Modele du graphe
+     * @throws IOException 
+     */
     public void sauvegarde_fichier(Graphe g) throws IOException{
         
         // On chosit un nom Adapté
@@ -171,6 +236,5 @@ public class Generation {
         }
         output2.close();
     }
-    
-     
+    //</editor-fold>
 }

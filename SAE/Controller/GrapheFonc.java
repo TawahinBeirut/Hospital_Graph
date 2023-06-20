@@ -343,3 +343,297 @@ public class GrapheFonc {
     }
     
     
+    /**
+     * Methode permettant de donner tous les chemins plus fiable entre 2 sites pour un sommet donné (Dijkstra).
+     * @param s1
+     * @return 
+     */
+    public HashMap[] DijkstraPlusFiable(Sommet s1){
+       
+        HashMap<Sommet,Double> fiabilites   = new HashMap<>();
+        HashMap<Sommet,Sommet> precedents   = new HashMap<>();
+        
+        // Sorte de file d'attente
+        PriorityQueue<QueueFiab> queue = new PriorityQueue<>();
+        
+        // Algorithme Djikistra
+        
+        // Initialisation 
+        
+        queue.add(new QueueFiab(s1,0));
+        
+        // On met toute les distances pour chaque sommet à l'infini sauf s1 à 0.
+        Sommet tmpInit = g.getPremier();
+        while (tmpInit != null){
+            if (tmpInit != s1){
+                fiabilites.put(tmpInit,(double)0);
+            }
+            precedents.put(tmpInit,null);
+            tmpInit = tmpInit.getSuivant();
+        }
+        fiabilites.put(s1,(double)0);
+        
+        // Debut
+        while (queue.size() != 0){
+            Sommet traite = queue.poll().sommet;
+            
+            // On traverse les arretes du sommet traite
+            Arete tmpA = traite.getArete();
+            while (tmpA != null){
+                Double alternative;
+                if (fiabilites.get(traite) != 0){
+                    alternative = fiabilites.get(traite) *(tmpA.getFiab()/100);
+                }
+                else {
+                    alternative = tmpA.getFiab()/100;
+                }
+                
+                // On trouve le sommet destinataire
+                Sommet dest = g.getPremier();
+                while (!dest.getNom().equals(tmpA.getDest())){
+                    dest = dest.getSuivant();
+                }
+                
+                // On compare l'alternative à distance
+                if ( alternative > fiabilites.get(dest)){
+                    fiabilites.put(dest, alternative);
+                    if (dest != s1){
+                    precedents.put(dest, traite);
+                    }
+                    queue.add(new QueueFiab(dest,fiabilites.get(dest)));
+                }
+                tmpA = tmpA.getSuivant();
+            }
+        }
+        return new HashMap[]{fiabilites,precedents};
+    }
+   
+    
+    /**
+     * Methode permettant de donner tous les chemins plus fiable entre 2 sites pour un sommet donné (Dijkstra).
+     * @param s1 Sommet Depart
+     * @param s2 Sommet Arrivée
+     * @return 
+     */
+    public List<Sommet> plus_fiable_chemin(Sommet s1,Sommet s2){
+        
+        // On verifie que les sommets sont joignables
+        
+        // On recupere la HashMap des precedents
+        HashMap[] dijkstraResult = DijkstraPlusFiable(s1);
+        HashMap<Sommet,Sommet> precedents = dijkstraResult[1];
+        HashMap<Sommet,Double> fiabilites = dijkstraResult[0];
+        
+        
+        double fiabiliteTotale = fiabilites.get(s2);
+        
+        // On verifie que la distance ne correspond pas à 1 et que donc ca soit joibnable
+        if (!(fiabiliteTotale == (double)1)){
+        
+        ArrayList<Sommet> chemin = new ArrayList<>();
+        Sommet dest = s2;
+        
+        while(dest != null){
+            chemin.add(0,dest);
+            dest = precedents.get(dest);
+        }
+        return chemin;
+        }
+        else return null;
+    }
+    
+    
+    /**
+     * Methode pour donnee le plus fiable chemin basé sur la methode Dijkstra
+     * @param s1 Sommet Depart
+     * @param s2 Sommet Arrivée
+     * @return 
+     */
+    public double distance_plus_fiable_chemin(Sommet s1,Sommet s2){
+       List<Sommet> chemin;
+       chemin = this.plus_fiable_chemin(s1, s2);
+       double fiabiliteTotale =0;
+       
+       
+       if(chemin!= null ){
+            
+            for (int i = 1; i < chemin.size();i++){
+                 double tmp = g.getArete2(chemin.get(i-1).getNom(), chemin.get(i).getNom()).getFiab();
+                 
+                 fiabiliteTotale = fiabiliteTotale + tmp;}
+                
+       }
+       return fiabiliteTotale;
+    }
+    
+    
+    /**
+     * Methode pour Comparer 2 nœuds,sur le critère opératoire ou nutritionnel ou Maternité (nb de blocks )
+     * @param s1 Sommet 1
+     * @param s2 Sommet 2
+     * @param critere String 
+     * @return 
+     */
+    public Sommet comparaison_2_noeuds(Sommet s1, Sommet s2, String critere){
+    
+        // On verifie que le critère est valide 
+        List<String> criteres = new LinkedList<>();
+        criteres.add("M");
+        criteres.add("N");
+        criteres.add("O");
+        
+        if(!criteres.contains(critere)){ return null;}
+             
+        // On enregistre tous les sommets du critere correspondant
+        List<Sommet> sommetsCritere = new ArrayList<>();
+        
+        Sommet tmp = g.getPremier();
+        while (tmp != null){
+            if (tmp.getType().equals(critere)){
+                sommetsCritere.add(tmp);
+            }
+            tmp = tmp.getSuivant();
+        }
+        
+        // On compte à l'aide d'une fonction précedente le nombre de sommets à 2 distances du critére
+        int nbs1 = 0;
+        int nbs2 = 0;
+        for(Sommet tmp2 : sommetsCritere){
+            if(this.sommets_2distances(s1, tmp2)){
+                nbs1+=1;
+            }
+            if(this.sommets_2distances(s2, tmp2)){
+                nbs2+=1;
+            }
+        }
+        
+        // On compare les 2 compteurs et on retourne le nom du sommet le plus optimal
+        Sommet resultat;
+        
+        if ( nbs1 >= nbs2){
+            resultat = s1; 
+        }
+        else{ 
+            resultat = s2;
+        }
+        return resultat;
+    }
+   
+    
+    /**
+     * Methode pour modifier les propriétés d'une arrete
+     * @param S1 Sommet 1 de l'arete
+     * @param S2 Sommet 2 de l'arete
+     * @param dist Nouvelle Distance
+     * @param fiab Nouvelle Fiabilité
+     * @param dur  Nouvelle Durée
+     */
+    public void modifierArrete(Sommet S1, Sommet S2,double dist,double fiab,double dur){
+        // On modifie la premiere arrete
+        Arete tmp1 = g.getArete2(S1.getNom(),S2.getNom());
+        tmp1.setDist(dist);
+        tmp1.setFiab(fiab);
+        tmp1.setDur(dur);
+        Arete tmp2 = g.getArete2(S2.getNom(), S1.getNom());
+        tmp2.setDist(dist);
+        tmp2.setFiab(fiab);
+        tmp2.setDur(dur);
+    }
+    
+    /**
+     * Methode pour supprimer une arete
+     * @param S1 Sommet 1 de l'arete
+     * @param S2 Sommet 2 de l'arete
+     */
+    public void supprimerArrete(Sommet S1,Sommet S2){
+        
+        Arete supp1 = g.getArete2(S1.getNom(),S2.getNom());
+        if(S1.getArete() != null){
+        // On gere le cas où l'arrete est la premiere de la liste
+        if ( supp1 == S1.getArete()){
+            S1.setlVois(S1.getArete().getSuivant());
+        }
+        else{
+        // Cas general 
+        Arete prec    = S1.getArete();
+        Arete elliste = S1.getArete().getSuivant();
+        while (elliste != null){
+            if( elliste == supp1){
+                prec.setSuivant(elliste.getSuivant());
+                
+            }
+            prec = prec.getSuivant();
+            elliste = elliste.getSuivant();
+        }
+        }
+        }
+        
+        // On recommence pour l'autre arrete
+        Arete supp2 = g.getArete2(S2.getNom(), S1.getNom());
+       
+        // On gere le cas où l'arrete est la premiere de la liste
+        if (supp2 == S2.getArete() && S2.getArete() != null){
+            S2.setlVois(S2.getArete().getSuivant());
+        }
+        else if (S2.getArete() == null){
+            S2.setlVois(S2.getArete().getSuivant());
+        }
+        else if( S2.getArete().getSuivant() == null){
+            S2.setlVois(null);
+        }
+        // Cas general
+        else if (S2.getArete() != null ){
+        Arete prec2   = S2.getArete();
+        Arete elliste2 = S2.getArete().getSuivant();
+        while (elliste2 != null){
+            if( elliste2 == supp2){
+                prec2.setSuivant(elliste2.getSuivant());
+                
+            }
+            prec2 = prec2.getSuivant();
+            elliste2 = elliste2.getSuivant();
+        }
+        
+        }
+    }
+    /**
+     * Methode pour supprimer un sommet et ses aretes
+     * @param S Sommet
+     */
+    public void supprimerNoeud(Sommet S){
+        if (S != null){
+        // On gere le cas où S est en tete de liste
+        if ( S == g.getPremier()){
+            Arete tmp = g.getPremier().getArete();
+            while (tmp != null){
+                Sommet dest = g.getSommet(tmp.getDest());
+                this.supprimerArrete(S, dest);
+                tmp = tmp.getSuivant();
+            }
+            g.setPremier(g.getPremier().getSuivant());
+        }
+        else{
+            Sommet prec    = g.getPremier();
+            Sommet elliste = prec.getSuivant();
+            boolean check  = false;
+            
+            // On gere le cas où le sommet est en milleu ou fin de liste 
+            while ( elliste != null && !check ){
+                if( elliste == S){
+                    Arete tmp = elliste.getArete();
+                    while (tmp != null){
+                        Sommet dest = g.getSommet(tmp.getDest());
+                        this.supprimerArrete(S, dest);
+                        check = true;
+                        tmp = tmp.getSuivant();
+                    }
+                    prec.setSuivant(elliste.getSuivant());
+                }
+                prec = prec.getSuivant();
+                elliste = elliste.getSuivant();
+            }
+        }
+        }
+    }
+    // </editor-fold>
+}
